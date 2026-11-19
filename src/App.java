@@ -1,7 +1,9 @@
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class App {
     public static void main(String[] args) throws Exception {
@@ -27,6 +29,9 @@ public class App {
     new Estudiante("E010", "Ana",    20, 8.5, "Computacion"),
     new Estudiante("E013", "Luis",   19, 7.8, "Electronica")
     ));
+    
+    List<String> codigosIniciales = estudiantes.stream().map(Estudiante::getCodigo).toList();
+
 
     // --- C1: Código ascendente (Orden natural) ---
         List<Estudiante> c1 = new ArrayList<>(estudiantes);
@@ -86,6 +91,9 @@ public class App {
         }
 
         // --- C7: Nota ajustada descendente; nombre ascendente; código ascendente ---
+        
+        // C7
+        // Nota ajustada descendente; nombre ascendente; código ascendente
         List<Estudiante> c7 = new ArrayList<>(estudiantes);
         c7.sort((e1, e2) -> {
             double nota1 = e1.getCarrera().equals("Computacion") ? Math.min(10.0, e1.getNota() + 0.5) : e1.getNota();
@@ -99,20 +107,100 @@ public class App {
             
             return e1.getCodigo().compareTo(e2.getCodigo());
         });
-        System.out.println("C7: Nota ajustada descendente; nombre ascendente; código ascendente");
+        System.out.println("Ejemplo C7");
+        System.out.println("Nota ajustada descendente, nombre ascendente, código ascendente");
         for (Estudiante est : c7) {
-            System.out.println("  " + est);
+            double notaAjustada = est.getCarrera().equals("Computacion") 
+                          ? Math.min(10.0, est.getNota() + 0.5) 
+                          : est.getNota();
+            System.out.println(" Estudiante [codigo=" + est.getCodigo()
+                    + ", nombre=" + est.getNombre()
+                    + ", edad=" + est.getEdad()
+                    + ", notaOriginal=" + est.getNota()
+                    + ", notaAjustada=" + notaAjustada
+                    + ", carrera=" + est.getCarrera() + "]");
+
+        }
+        System.out.println("----------------------------------------------------------------------------------------");
+
+        // === VALIDACIONES Y PRUEBAS PARA EVIDENCIAS ===
+        System.out.println("=== SECUENCIAS DE CODIGOS ===");
+        System.out.println("C1: " + c1.stream().map(Estudiante::getCodigo).toList());
+        System.out.println("C2: " + c2.stream().map(Estudiante::getCodigo).toList());
+        System.out.println("C3: " + c3.stream().map(Estudiante::getCodigo).toList());
+        System.out.println("C4: " + c4.stream().map(Estudiante::getCodigo).toList());
+        System.out.println("C5: " + c5.stream().map(Estudiante::getCodigo).toList());
+        System.out.println("C6: " + c6.stream().map(Estudiante::getCodigo).toList());
+        System.out.println("C7: " + c7.stream().map(Estudiante::getCodigo).toList());
+
+        // 1. Conservación de los 20 registros sin pérdidas ni duplicados
+        Set<String> setOriginal = new HashSet<>(codigosIniciales);
+        List<List<Estudiante>> todas = List.of(c1, c2, c3, c4, c5, c6, c7);
+        for (int i = 0; i < todas.size(); i++) {
+            List<String> cods = todas.get(i).stream().map(Estudiante::getCodigo).toList();
+            boolean conserva = cods.size() == 20 && new HashSet<>(cods).equals(setOriginal);
+            System.out.println("C" + (i + 1) + " conserva 20 codigos: " + conserva);
+        }
+
+        // 2. Verificación de orden entre elementos consecutivos
+        System.out.println("Orden valido C1: " + estaOrdenada(c1, Comparator.naturalOrder()));
+        System.out.println("Orden valido C2: " + estaOrdenada(c2, Comparator.comparing(Estudiante::getNombre).thenComparing(Estudiante::getCodigo)));
+        System.out.println("Orden valido C3: " + estaOrdenada(c3, Comparator.comparingDouble(Estudiante::getNota)));
+        System.out.println("Orden valido C4: " + estaOrdenada(c4, Comparator.comparingDouble(Estudiante::getNota).reversed().thenComparing(Estudiante::getNombre)));
+        System.out.println("Orden valido C5: " + estaOrdenada(c5, Comparator.comparingInt(Estudiante::getEdad).thenComparing(Comparator.comparing(Estudiante::getNombre).reversed())));
+        System.out.println("Orden valido C6: " + estaOrdenada(c6, Comparator.comparing(Estudiante::getCarrera).thenComparing(Comparator.comparingDouble(Estudiante::getNota).reversed()).thenComparing(Estudiante::getNombre).thenComparing(Estudiante::getCodigo)));
+        System.out.println("Orden valido C7: " + estaOrdenada(c7, (e1, e2) -> {
+            double n1 = e1.getCarrera().equals("Computacion") ? Math.min(10.0, e1.getNota() + 0.5) : e1.getNota();
+            double n2 = e2.getCarrera().equals("Computacion") ? Math.min(10.0, e2.getNota() + 0.5) : e2.getNota();
+            int cn = Double.compare(n2, n1);
+            if (cn != 0) return cn;
+            int cNom = e1.getNombre().compareTo(e2.getNombre());
+            return cNom != 0 ? cNom : e1.getCodigo().compareTo(e2.getCodigo());
+        }));
+
+        // 3. Estabilidad en C3 (nota 8.5)
+        List<String> nota85 = c3.stream()
+                .filter(e -> Double.compare(e.getNota(), 8.5) == 0)
+                .map(Estudiante::getCodigo)
+                .toList();
+        System.out.println("Estabilidad C3 (nota 8.5): " + nota85);
+
+        // 4. Lista original intacta
+        List<String> codigosFinales = estudiantes.stream().map(Estudiante::getCodigo).toList();
+        System.out.println("Original intacta: " + codigosIniciales.equals(codigosFinales));
+
+        // 5. Casos borde: lista vacía, 1 elemento y empate completo en C4
+        List<Estudiante> vacia = new ArrayList<>();
+        Collections.sort(vacia);
+        List<Estudiante> uno = new ArrayList<>(List.of(estudiantes.get(0)));
+        uno.sort(Comparator.comparingDouble(Estudiante::getNota).reversed().thenComparing(Estudiante::getNombre));
+        List<Estudiante> tresAnas = new ArrayList<>(List.of(estudiantes.get(0), estudiantes.get(6), estudiantes.get(18)));
+        tresAnas.sort(Comparator.comparingDouble(Estudiante::getNota).reversed().thenComparing(Estudiante::getNombre));
+
+        System.out.println("Lista vacia (tamano): " + vacia.size());
+        System.out.println("Lista 1 elemento: " + uno.stream().map(Estudiante::getCodigo).toList());
+        System.out.println("C4 sobre [E014, E005, E010]: " + tresAnas.stream().map(Estudiante::getCodigo).toList());
+
+        // 6. Dos casos propios
+        List<String> edad19C5 = c5.stream()
+                .filter(e -> e.getEdad() == 19)
+                .map(e -> e.getCodigo() + "(" + e.getNombre() + ")")
+                .toList();
+        System.out.println("Caso propio 1 (edad 19 en C5): " + edad19C5);
+
+        System.out.println("Caso propio 2 (top 4 de C7 - sin bonificacion fuera de Computacion):");
+        for (int i = 0; i < 4; i++) {
+            Estudiante e = c7.get(i);
+            double aj = e.getCarrera().equals("Computacion") ? Math.min(10.0, e.getNota() + 0.5) : e.getNota();
+            System.out.println("  #" + (i + 1) + " " + e.getCodigo() + " (" + e.getCarrera()
+                    + ") orig=" + e.getNota() + " ajustada=" + aj);
         }
     }
 
-    private static void imprimirResultado(String id, String criterio, List<Estudiante> lista) {
-        System.out.println("ID: " + id + " | Criterio: " + criterio);
-        for (Estudiante e : lista) {
-            System.out.println("   " + e.getCodigo() + " - " + e.getNombre() + " - " + e.getNota() + " - " + e.getCarrera());
+    private static boolean estaOrdenada(List<Estudiante> lista, Comparator<Estudiante> comp) {
+        for (int i = 0; i < lista.size() - 1; i++) {
+            if (comp.compare(lista.get(i), lista.get(i + 1)) > 0) return false;
         }
-        System.out.println("--------------------------------------------------");
+        return true;
     }
 }
-
-
-    
